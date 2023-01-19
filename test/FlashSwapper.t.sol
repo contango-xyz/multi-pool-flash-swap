@@ -27,7 +27,7 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInputSingle() public {
-        ExactInputCaller caller = new ExactInputCaller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputSingleParams memory params = IFlashSwapper.ExactInputSingleParams({
             tokenIn: WETH,
@@ -45,7 +45,7 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInput_2Pools() public {
-        ExactInputCaller caller = new ExactInputCaller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), USDC, uint24(100), DAI),
@@ -60,7 +60,7 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInput_3Pools() public {
-        ExactInputCaller caller = new ExactInputCaller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), DAI, uint24(100), USDC, uint24(500), WBTC),
@@ -73,9 +73,57 @@ contract FlashSwapperTest is Test {
 
         assertGt(IERC20(WBTC).balanceOf(address(caller)), 1e8);
     }
+
+    function testExactOutputSingle() public {
+        Caller caller = new Caller({_tokenIn:WETH});
+
+        IFlashSwapper.ExactOutputSingleParams memory params = IFlashSwapper.ExactOutputSingleParams({
+            tokenIn: WETH,
+            tokenOut: USDC,
+            fee: 500,
+            // recipient: BOB,
+            amountOut: 1600e6
+        });
+
+        vm.prank(address(caller));
+        flashSwapper.exactOutputSingle(params);
+
+        // assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
+        assertEq(IERC20(USDC).balanceOf(address(caller)), 1600e6);
+    }
+
+    function testExactOutput_2Pools() public {
+        Caller caller = new Caller({_tokenIn:WETH});
+
+        IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
+            path: abi.encodePacked(DAI, uint24(100), USDC, uint24(500), WETH),
+            // recipient: BOB,
+            amountOut: 1600e18
+        });
+
+        vm.prank(address(caller));
+        flashSwapper.exactOutput(params);
+
+        assertEq(IERC20(DAI).balanceOf(address(caller)), 1600e18);
+    }
+
+    function testExactOutput_3Pools() public {
+        Caller caller = new Caller({_tokenIn:WETH});
+
+        IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
+            path: abi.encodePacked(WBTC, uint24(500), USDC, uint24(100), DAI, uint24(500), WETH),
+            // recipient: BOB,
+            amountOut: 1e8
+        });
+
+        vm.prank(address(caller));
+        flashSwapper.exactOutput(params);
+
+        assertEq(IERC20(WBTC).balanceOf(address(caller)), 1e8);
+    }
 }
 
-contract ExactInputCaller is IFlashSwapperCallback, StdCheats {
+contract Caller is IFlashSwapperCallback, StdCheats {
     address public immutable tokenIn;
 
     constructor(address _tokenIn) {
@@ -86,12 +134,12 @@ contract ExactInputCaller is IFlashSwapperCallback, StdCheats {
         external
         override
     {
-        console.log("ExactInputCaller: pool", pool);
+        console.log("Caller: pool", pool);
 
         uint256 amountToPay = amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta);
-        console.log("ExactInputCaller: amountToPay", amountToPay);
+        console.log("Caller: amountToPay", amountToPay);
         amountToPay += IERC20(tokenIn).balanceOf(pool);
-        console.log("ExactInputCaller: amountToPay total", amountToPay);
+        console.log("Caller: amountToPay total", amountToPay);
 
         deal(tokenIn, pool, amountToPay);
     }

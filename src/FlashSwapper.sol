@@ -45,30 +45,40 @@ contract FlashSwapper is IFlashSwapper {
             cb.amount1Delta = amount1Delta;
         }
 
-        if (cb.firstPool != msg.sender) {
-            ERC20(tokenIn).safeTransfer(msg.sender, amountToPay);
-        }
+        if (isExactInput) {
+            if (cb.firstPool != msg.sender) {
+                ERC20(tokenIn).safeTransfer(msg.sender, amountToPay);
+            }
 
-        console.logBytes(cb.path);
+            if (cb.path.hasMultiplePools()) {
+                console.log("hasMultiplePools");
 
-        if (cb.path.hasMultiplePools()) {
-            console.log("hasMultiplePools");
+                cb.path = cb.path.skipToken();
 
-            cb.path = cb.path.skipToken();
-            console.logBytes(cb.path);
+                address recipient = cb.path.hasMultiplePools() ? address(this) : cb.payer;
 
-            address recipient = cb.path.hasMultiplePools() ? address(this) : cb.payer;
+                _exactInputInternal(amountReceived, recipient, cb);
+            } else {
+                console.log("noMultiplePools");
 
-            _exactInputInternal(amountReceived, recipient, cb);
-
-            // _exactOutputInternal(amountToPay, msg.sender, cb);
+                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(
+                    cb.amount0Delta, cb.amount1Delta, cb.firstPool, data
+                );
+            }
         } else {
-            console.log("noMultiplePools");
+            if (cb.path.hasMultiplePools()) {
+                console.log("hasMultiplePools");
 
-            IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(cb.amount0Delta, cb.amount1Delta, cb.firstPool, data);
+                cb.path = cb.path.skipToken();
+
+                _exactOutputInternal(amountToPay, msg.sender, cb);
+
+            } else {
+                console.log("noMultiplePools");
+
+                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(amount0Delta, amount1Delta, msg.sender, data);
+            }
         }
-
-        // IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(amount0Delta, amount1Delta, cb.recipient, data);
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params) external override {
@@ -115,9 +125,38 @@ contract FlashSwapper is IFlashSwapper {
         );
     }
 
-    function exactOutputSingle(ExactOutputSingleParams calldata params) external override {}
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external override {
+        // avoid an SLOAD by using the swap return data
+        _exactOutputInternal(
+            params.amountOut,
+            msg.sender,
+            SwapCallbackData({
+                path: abi.encodePacked(params.tokenOut, params.fee, params.tokenIn),
+                payer: msg.sender,
+                firstPool: address(0),
+                amount0Delta: 0,
+                amount1Delta: 0
+            })
+        );
 
-    function exactOutput(ExactOutputParams calldata params) external override {}
+        // amountInCached = DEFAULT_AMOUNT_IN_CACHED;
+    }
+
+    function exactOutput(ExactOutputParams calldata params) external override {
+        require(params.path.hasMultiplePools(), "FlashSwapper: EXACT_OUTPUT_MULTIPLE_POOLS");
+
+        _exactOutputInternal(
+            params.amountOut,
+            msg.sender,
+            SwapCallbackData({
+                path: params.path,
+                payer: msg.sender,
+                firstPool: address(0),
+                amount0Delta: 0,
+                amount1Delta: 0
+            })
+        );
+    }
 
     function _exactOutputInternal(uint256 amountOut, address recipient, SwapCallbackData memory data) private {
         (address tokenOut, address tokenIn, uint24 fee) = data.path.decodeFirstPool();
