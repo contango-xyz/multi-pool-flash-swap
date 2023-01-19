@@ -12,6 +12,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         uint24 fee;
         // address recipient;
         uint256 amountIn;
+        bytes data;
     }
 
     /// @notice Swaps `amountIn` of one token for as much as possible of another token
@@ -22,6 +23,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         bytes path;
         // address recipient;
         uint256 amountIn;
+        bytes data;
     }
 
     /// @notice Swaps `amountIn` of one token for as much as possible of another along the specified path
@@ -34,6 +36,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         uint24 fee;
         // address recipient;
         uint256 amountOut;
+        bytes data;
     }
 
     /// @notice Swaps as little as possible of one token for `amountOut` of another token
@@ -44,6 +47,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         bytes path;
         // address recipient;
         uint256 amountOut;
+        bytes data;
     }
 
     /// @notice Swaps as little as possible of one token for `amountOut` of another along the specified path (reversed)

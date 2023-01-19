@@ -11,6 +11,8 @@ contract FlashSwapperTest is Test {
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
 
+    bytes private expectedData = "data";
+
     // address constant BOB = address(0xb0b);
 
     FlashSwapper internal flashSwapper;
@@ -27,14 +29,15 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInputSingle() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactInputSingleParams memory params = IFlashSwapper.ExactInputSingleParams({
             tokenIn: WETH,
             tokenOut: USDC,
             fee: 500,
             // recipient: BOB,
-            amountIn: 1 ether
+            amountIn: 1 ether,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -45,12 +48,13 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInput_2Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), USDC, uint24(100), DAI),
             // recipient: BOB,
-            amountIn: 1 ether
+            amountIn: 1 ether,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -60,12 +64,13 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInput_3Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), DAI, uint24(100), USDC, uint24(500), WBTC),
             // recipient: BOB,
-            amountIn: 15 ether
+            amountIn: 15 ether,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -75,14 +80,15 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactOutputSingle() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactOutputSingleParams memory params = IFlashSwapper.ExactOutputSingleParams({
             tokenIn: WETH,
             tokenOut: USDC,
             fee: 500,
             // recipient: BOB,
-            amountOut: 1600e6
+            amountOut: 1600e6,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -93,12 +99,13 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactOutput_2Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(DAI, uint24(100), USDC, uint24(500), WETH),
             // recipient: BOB,
-            amountOut: 1600e18
+            amountOut: 1600e18,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -108,12 +115,13 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactOutput_3Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH});
+        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(WBTC, uint24(500), USDC, uint24(100), DAI, uint24(500), WETH),
             // recipient: BOB,
-            amountOut: 1e8
+            amountOut: 1e8,
+            data: expectedData
         });
 
         vm.prank(address(caller));
@@ -123,24 +131,24 @@ contract FlashSwapperTest is Test {
     }
 }
 
-contract Caller is IFlashSwapperCallback, StdCheats {
+contract Caller is IFlashSwapperCallback, StdCheats, StdAssertions {
     address public immutable tokenIn;
+    bytes public expectedData;
 
-    constructor(address _tokenIn) {
+    constructor(address _tokenIn, bytes memory data) {
         tokenIn = _tokenIn;
+        expectedData = data;
     }
 
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, address pool, bytes calldata data)
         external
         override
     {
-        console.log("Caller: pool", pool);
-
-        uint256 amountToPay = amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta);
-        console.log("Caller: amountToPay", amountToPay);
-        amountToPay += IERC20(tokenIn).balanceOf(pool);
-        console.log("Caller: amountToPay total", amountToPay);
+        uint256 amountToPay =
+            IERC20(tokenIn).balanceOf(pool) + (amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta));
 
         deal(tokenIn, pool, amountToPay);
+
+        assertEq(data, expectedData);
     }
 }

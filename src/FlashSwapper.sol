@@ -26,6 +26,7 @@ contract FlashSwapper is IFlashSwapper {
         address firstPool;
         int256 amount0Delta;
         int256 amount1Delta;
+        bytes data;
     }
 
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external override {
@@ -62,7 +63,7 @@ contract FlashSwapper is IFlashSwapper {
                 console.log("noMultiplePools");
 
                 IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(
-                    cb.amount0Delta, cb.amount1Delta, cb.firstPool, data
+                    cb.amount0Delta, cb.amount1Delta, cb.firstPool, cb.data
                 );
             }
         } else {
@@ -72,11 +73,10 @@ contract FlashSwapper is IFlashSwapper {
                 cb.path = cb.path.skipToken();
 
                 _exactOutputInternal(amountToPay, msg.sender, cb);
-
             } else {
                 console.log("noMultiplePools");
 
-                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(amount0Delta, amount1Delta, msg.sender, data);
+                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(amount0Delta, amount1Delta, msg.sender, cb.data);
             }
         }
     }
@@ -90,7 +90,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 firstPool: address(0),
                 amount0Delta: 0,
-                amount1Delta: 0
+                amount1Delta: 0,
+                data: params.data
             })
         );
     }
@@ -106,7 +107,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 firstPool: address(0),
                 amount0Delta: 0,
-                amount1Delta: 0
+                amount1Delta: 0,
+                data: params.data
             })
         );
     }
@@ -135,7 +137,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 firstPool: address(0),
                 amount0Delta: 0,
-                amount1Delta: 0
+                amount1Delta: 0,
+                data: params.data
             })
         );
 
@@ -153,7 +156,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 firstPool: address(0),
                 amount0Delta: 0,
-                amount1Delta: 0
+                amount1Delta: 0,
+                data: params.data
             })
         );
     }
