@@ -303,8 +303,10 @@ contract Caller is IFlashSwapperCallback, Test {
         vm.prank(whale);
         tokenIn.transfer(pool, _amountToRepay);
 
+        vm.pauseGasMetering();
         data = _data;
         amountReceived = _amountReceived;
         amountToRepay = _amountToRepay;
+        vm.resumeGasMetering();
     }
 }
