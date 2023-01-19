@@ -25,7 +25,7 @@ contract FlashSwapper is IFlashSwapper {
         address firstPool;
         uint256 amountReceived;
         uint256 amountToRepay;
-        bytes data;
+        bytes userData;
     }
 
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external override {
@@ -62,7 +62,7 @@ contract FlashSwapper is IFlashSwapper {
                     amountReceived: amountReceived,
                     amountToRepay: cb.amountToRepay,
                     pool: cb.firstPool,
-                    data: cb.data
+                    data: cb.userData
                 });
             }
         } else {
@@ -75,7 +75,7 @@ contract FlashSwapper is IFlashSwapper {
                     amountReceived: cb.amountReceived,
                     amountToRepay: amountToRepay,
                     pool: msg.sender,
-                    data: cb.data
+                    data: cb.userData
                 });
             }
         }
@@ -92,7 +92,7 @@ contract FlashSwapper is IFlashSwapper {
                 firstPool: address(0),
                 amountReceived: 0,
                 amountToRepay: 0,
-                data: params.data
+                userData: params.data
             })
         );
     }
@@ -110,7 +110,7 @@ contract FlashSwapper is IFlashSwapper {
                 firstPool: address(0),
                 amountReceived: 0,
                 amountToRepay: 0,
-                data: params.data
+                userData: params.data
             })
         );
     }
@@ -140,7 +140,7 @@ contract FlashSwapper is IFlashSwapper {
                 firstPool: address(0),
                 amountReceived: 0,
                 amountToRepay: 0,
-                data: params.data
+                userData: params.data
             })
         );
     }
@@ -158,7 +158,7 @@ contract FlashSwapper is IFlashSwapper {
                 firstPool: address(0),
                 amountReceived: 0,
                 amountToRepay: 0,
-                data: params.data
+                userData: params.data
             })
         );
     }
