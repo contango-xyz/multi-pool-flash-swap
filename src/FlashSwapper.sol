@@ -59,7 +59,7 @@ contract FlashSwapper is IFlashSwapper {
 
                 address recipient = cb.path.hasMultiplePools() ? address(this) : cb.recipient;
 
-                _exactInputInternal(amountReceived, recipient, cb);
+                _exactInput(amountReceived, recipient, cb);
             } else {
                 console.log("noMultiplePools");
 
@@ -73,7 +73,7 @@ contract FlashSwapper is IFlashSwapper {
 
                 cb.path = cb.path.skipToken();
 
-                _exactOutputInternal(amountToPay, msg.sender, cb);
+                _exactOutput(amountToPay, msg.sender, cb);
             } else {
                 console.log("noMultiplePools");
 
@@ -83,7 +83,7 @@ contract FlashSwapper is IFlashSwapper {
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params) external override {
-        _exactInputInternal(
+        _exactInput(
             params.amountIn,
             params.recipient,
             SwapCallbackData({
@@ -101,7 +101,7 @@ contract FlashSwapper is IFlashSwapper {
     function exactInput(ExactInputParams calldata params) external override {
         require(params.path.hasMultiplePools(), "FlashSwapper: EXACT_INPUT_MULTIPLE_POOLS");
 
-        _exactInputInternal(
+        _exactInput(
             params.amountIn,
             address(this),
             SwapCallbackData({
@@ -116,7 +116,7 @@ contract FlashSwapper is IFlashSwapper {
         );
     }
 
-    function _exactInputInternal(uint256 amountIn, address recipient, SwapCallbackData memory data) private {
+    function _exactInput(uint256 amountIn, address recipient, SwapCallbackData memory data) private {
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
 
         bool zeroForOne = tokenIn < tokenOut;
@@ -132,7 +132,7 @@ contract FlashSwapper is IFlashSwapper {
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external override {
         // avoid an SLOAD by using the swap return data
-        _exactOutputInternal(
+        _exactOutput(
             params.amountOut,
             params.recipient,
             SwapCallbackData({
@@ -152,7 +152,7 @@ contract FlashSwapper is IFlashSwapper {
     function exactOutput(ExactOutputParams calldata params) external override {
         require(params.path.hasMultiplePools(), "FlashSwapper: EXACT_OUTPUT_MULTIPLE_POOLS");
 
-        _exactOutputInternal(
+        _exactOutput(
             params.amountOut,
             params.recipient,
             SwapCallbackData({
@@ -167,7 +167,7 @@ contract FlashSwapper is IFlashSwapper {
         );
     }
 
-    function _exactOutputInternal(uint256 amountOut, address recipient, SwapCallbackData memory data) private {
+    function _exactOutput(uint256 amountOut, address recipient, SwapCallbackData memory data) private {
         (address tokenOut, address tokenIn, uint24 fee) = data.path.decodeFirstPool();
 
         bool zeroForOne = tokenIn < tokenOut;
@@ -181,7 +181,7 @@ contract FlashSwapper is IFlashSwapper {
         );
     }
 
-    function _getPool(address tokenA, address tokenB, uint24 fee) private view returns (IUniswapV3Pool) {
+    function _getPool(address tokenA, address tokenB, uint24 fee) private pure returns (IUniswapV3Pool) {
         return IUniswapV3Pool(PoolAddress.computeAddress(FACTORY, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
     }
 }
