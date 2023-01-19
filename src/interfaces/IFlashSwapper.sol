@@ -56,6 +56,5 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
 }
 
 interface IFlashSwapperCallback {
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, address pool, bytes calldata data)
-        external;
+    function flashSwapCallback(int256 amount0Delta, int256 amount1Delta, address pool, bytes calldata data) external;
 }

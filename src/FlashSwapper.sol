@@ -6,8 +6,6 @@ import "solmate/src/utils/SafeTransferLib.sol";
 import "./dependencies/Uniswap.sol";
 import "./interfaces/IFlashSwapper.sol";
 
-import "forge-std/console.sol";
-
 contract FlashSwapper is IFlashSwapper {
     using Path for bytes;
     using SafeCast for uint256;
@@ -20,13 +18,17 @@ contract FlashSwapper is IFlashSwapper {
         weth = _weth;
     }
 
-    struct SwapCallbackData {
-        bytes path;
-        address payer;
+    struct ExactInputCallbackData {
         address recipient;
         address firstPool;
         int256 amount0Delta;
         int256 amount1Delta;
+    }
+
+    struct SwapCallbackData {
+        bytes path;
+        address payer;
+        bytes exactInputData;
         bytes data;
     }
 
@@ -40,44 +42,48 @@ contract FlashSwapper is IFlashSwapper {
             ? (tokenIn < tokenOut, uint256(amount0Delta), uint256(-amount1Delta))
             : (tokenOut < tokenIn, uint256(amount1Delta), uint256(-amount0Delta));
 
-        if (isExactInput && cb.firstPool == address(0)) {
-            console.log("firstPool", msg.sender);
-            cb.firstPool = msg.sender;
-            cb.amount0Delta = amount0Delta;
-            cb.amount1Delta = amount1Delta;
-        }
-
         if (isExactInput) {
-            if (cb.firstPool != msg.sender) {
+            ExactInputCallbackData memory eicb = abi.decode(cb.exactInputData, (ExactInputCallbackData));
+
+            if (eicb.firstPool == address(0)) {
+                eicb.firstPool = msg.sender;
+                eicb.amount0Delta = amount0Delta;
+                eicb.amount1Delta = amount1Delta;
+            }
+
+            if (eicb.firstPool != msg.sender) {
                 ERC20(tokenIn).safeTransfer(msg.sender, amountToPay);
             }
 
             if (cb.path.hasMultiplePools()) {
-                console.log("hasMultiplePools");
-
                 cb.path = cb.path.skipToken();
+                cb.exactInputData = abi.encode(eicb);
 
-                address recipient = cb.path.hasMultiplePools() ? address(this) : cb.recipient;
-
-                _exactInput(amountReceived, recipient, cb);
+                _exactInput({
+                    amountIn: amountReceived,
+                    recipient: cb.path.hasMultiplePools() ? address(this) : eicb.recipient,
+                    data: cb
+                });
             } else {
-                console.log("noMultiplePools");
-
-                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(
-                    cb.amount0Delta, cb.amount1Delta, cb.firstPool, cb.data
-                );
+                IFlashSwapperCallback(cb.payer).flashSwapCallback({
+                    amount0Delta: eicb.amount0Delta,
+                    amount1Delta: eicb.amount1Delta,
+                    pool: eicb.firstPool,
+                    data: cb.data
+                });
             }
         } else {
             if (cb.path.hasMultiplePools()) {
-                console.log("hasMultiplePools");
-
                 cb.path = cb.path.skipToken();
 
-                _exactOutput(amountToPay, msg.sender, cb);
+                _exactOutput({amountOut: amountToPay, recipient: msg.sender, data: cb});
             } else {
-                console.log("noMultiplePools");
-
-                IFlashSwapperCallback(cb.payer).uniswapV3SwapCallback(amount0Delta, amount1Delta, msg.sender, cb.data);
+                IFlashSwapperCallback(cb.payer).flashSwapCallback({
+                    amount0Delta: amount0Delta,
+                    amount1Delta: amount1Delta,
+                    pool: msg.sender,
+                    data: cb.data
+                });
             }
         }
     }
@@ -89,10 +95,14 @@ contract FlashSwapper is IFlashSwapper {
             SwapCallbackData({
                 path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut),
                 payer: msg.sender,
-                firstPool: address(0),
-                recipient: params.recipient,
-                amount0Delta: 0,
-                amount1Delta: 0,
+                exactInputData: abi.encode(
+                    ExactInputCallbackData({
+                        recipient: params.recipient,
+                        firstPool: address(0),
+                        amount0Delta: 0,
+                        amount1Delta: 0
+                    })
+                    ),
                 data: params.data
             })
         );
@@ -107,10 +117,14 @@ contract FlashSwapper is IFlashSwapper {
             SwapCallbackData({
                 path: params.path,
                 payer: msg.sender,
-                recipient: params.recipient,
-                firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                exactInputData: abi.encode(
+                    ExactInputCallbackData({
+                        recipient: params.recipient,
+                        firstPool: address(0),
+                        amount0Delta: 0,
+                        amount1Delta: 0
+                    })
+                    ),
                 data: params.data
             })
         );
@@ -131,22 +145,16 @@ contract FlashSwapper is IFlashSwapper {
     }
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external override {
-        // avoid an SLOAD by using the swap return data
         _exactOutput(
             params.amountOut,
             params.recipient,
             SwapCallbackData({
                 path: abi.encodePacked(params.tokenOut, params.fee, params.tokenIn),
                 payer: msg.sender,
-                recipient: params.recipient,
-                firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                exactInputData: "",
                 data: params.data
             })
         );
-
-        // amountInCached = DEFAULT_AMOUNT_IN_CACHED;
     }
 
     function exactOutput(ExactOutputParams calldata params) external override {
@@ -155,15 +163,7 @@ contract FlashSwapper is IFlashSwapper {
         _exactOutput(
             params.amountOut,
             params.recipient,
-            SwapCallbackData({
-                path: params.path,
-                payer: msg.sender,
-                recipient: params.recipient,
-                firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
-                data: params.data
-            })
+            SwapCallbackData({path: params.path, payer: msg.sender, exactInputData: "", data: params.data})
         );
     }
 
