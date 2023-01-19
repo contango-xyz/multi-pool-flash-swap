@@ -3,4 +3,13 @@ src = 'src'
 out = 'out'
 libs = ['lib']
 
+[rpc_endpoints]
+mainnet = "${MAINNET_URL}"
+arbitrum = "${ARBITRUM_URL}"
+localhost = "http://127.0.0.1:8545"
+
+[etherscan]
+mainnet = {key = "${ETHERSCAN_MAINNET_KEY}"}
+arbitrum = {key = "${ETHERSCAN_ARBITRUM_KEY}"}
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
