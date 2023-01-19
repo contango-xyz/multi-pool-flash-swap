@@ -13,12 +13,14 @@ contract FlashSwapperTest is Test {
 
     bytes private expectedData = "data";
 
-    // address constant BOB = address(0xb0b);
+    address constant BOB = address(0xb0b);
 
     FlashSwapper internal flashSwapper;
 
     function setUp() public {
-        vm.createSelectFork("mainnet", 16442920);
+        vm.makePersistent(BOB);
+
+        vm.createSelectFork("mainnet");
 
         vm.label(DAI, "DAI");
         vm.label(USDC, "USDC");
@@ -35,7 +37,7 @@ contract FlashSwapperTest is Test {
             tokenIn: WETH,
             tokenOut: USDC,
             fee: 500,
-            // recipient: BOB,
+            recipient: BOB,
             amountIn: 1 ether,
             data: expectedData
         });
@@ -43,8 +45,7 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInputSingle(params);
 
-        // assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
-        assertGt(IERC20(USDC).balanceOf(address(caller)), 1500e6);
+        assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
     }
 
     function testExactInput_2Pools() public {
@@ -52,7 +53,7 @@ contract FlashSwapperTest is Test {
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), USDC, uint24(100), DAI),
-            // recipient: BOB,
+            recipient: BOB,
             amountIn: 1 ether,
             data: expectedData
         });
@@ -60,7 +61,7 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInput(params);
 
-        assertGt(IERC20(DAI).balanceOf(address(caller)), 1500e18);
+        assertGt(IERC20(DAI).balanceOf(BOB), 1500e18);
     }
 
     function testExactInput_3Pools() public {
@@ -68,7 +69,7 @@ contract FlashSwapperTest is Test {
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), DAI, uint24(100), USDC, uint24(500), WBTC),
-            // recipient: BOB,
+            recipient: BOB,
             amountIn: 15 ether,
             data: expectedData
         });
@@ -76,7 +77,7 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInput(params);
 
-        assertGt(IERC20(WBTC).balanceOf(address(caller)), 1e8);
+        assertGt(IERC20(WBTC).balanceOf(BOB), 1e8);
     }
 
     function testExactOutputSingle() public {
@@ -86,7 +87,7 @@ contract FlashSwapperTest is Test {
             tokenIn: WETH,
             tokenOut: USDC,
             fee: 500,
-            // recipient: BOB,
+            recipient: BOB,
             amountOut: 1600e6,
             data: expectedData
         });
@@ -95,7 +96,7 @@ contract FlashSwapperTest is Test {
         flashSwapper.exactOutputSingle(params);
 
         // assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
-        assertEq(IERC20(USDC).balanceOf(address(caller)), 1600e6);
+        assertEq(IERC20(USDC).balanceOf(BOB), 1600e6);
     }
 
     function testExactOutput_2Pools() public {
@@ -103,7 +104,7 @@ contract FlashSwapperTest is Test {
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(DAI, uint24(100), USDC, uint24(500), WETH),
-            // recipient: BOB,
+            recipient: BOB,
             amountOut: 1600e18,
             data: expectedData
         });
@@ -111,7 +112,7 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactOutput(params);
 
-        assertEq(IERC20(DAI).balanceOf(address(caller)), 1600e18);
+        assertEq(IERC20(DAI).balanceOf(BOB), 1600e18);
     }
 
     function testExactOutput_3Pools() public {
@@ -119,7 +120,7 @@ contract FlashSwapperTest is Test {
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(WBTC, uint24(500), USDC, uint24(100), DAI, uint24(500), WETH),
-            // recipient: BOB,
+            recipient: BOB,
             amountOut: 1e8,
             data: expectedData
         });
@@ -127,7 +128,7 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactOutput(params);
 
-        assertEq(IERC20(WBTC).balanceOf(address(caller)), 1e8);
+        assertEq(IERC20(WBTC).balanceOf(BOB), 1e8);
     }
 }
 

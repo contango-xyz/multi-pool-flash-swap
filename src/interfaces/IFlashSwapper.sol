@@ -10,7 +10,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         address tokenIn;
         address tokenOut;
         uint24 fee;
-        // address recipient;
+        address recipient;
         uint256 amountIn;
         bytes data;
     }
@@ -21,7 +21,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
 
     struct ExactInputParams {
         bytes path;
-        // address recipient;
+        address recipient;
         uint256 amountIn;
         bytes data;
     }
@@ -34,7 +34,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
         address tokenIn;
         address tokenOut;
         uint24 fee;
-        // address recipient;
+        address recipient;
         uint256 amountOut;
         bytes data;
     }
@@ -45,7 +45,7 @@ interface IFlashSwapper is IUniswapV3SwapCallback {
 
     struct ExactOutputParams {
         bytes path;
-        // address recipient;
+        address recipient;
         uint256 amountOut;
         bytes data;
     }

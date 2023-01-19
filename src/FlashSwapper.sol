@@ -23,6 +23,7 @@ contract FlashSwapper is IFlashSwapper {
     struct SwapCallbackData {
         bytes path;
         address payer;
+        address recipient;
         address firstPool;
         int256 amount0Delta;
         int256 amount1Delta;
@@ -56,7 +57,7 @@ contract FlashSwapper is IFlashSwapper {
 
                 cb.path = cb.path.skipToken();
 
-                address recipient = cb.path.hasMultiplePools() ? address(this) : cb.payer;
+                address recipient = cb.path.hasMultiplePools() ? address(this) : cb.recipient;
 
                 _exactInputInternal(amountReceived, recipient, cb);
             } else {
@@ -84,11 +85,12 @@ contract FlashSwapper is IFlashSwapper {
     function exactInputSingle(ExactInputSingleParams calldata params) external override {
         _exactInputInternal(
             params.amountIn,
-            msg.sender,
+            params.recipient,
             SwapCallbackData({
                 path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut),
                 payer: msg.sender,
                 firstPool: address(0),
+                recipient: params.recipient,
                 amount0Delta: 0,
                 amount1Delta: 0,
                 data: params.data
@@ -105,6 +107,7 @@ contract FlashSwapper is IFlashSwapper {
             SwapCallbackData({
                 path: params.path,
                 payer: msg.sender,
+                recipient: params.recipient,
                 firstPool: address(0),
                 amount0Delta: 0,
                 amount1Delta: 0,
@@ -131,10 +134,11 @@ contract FlashSwapper is IFlashSwapper {
         // avoid an SLOAD by using the swap return data
         _exactOutputInternal(
             params.amountOut,
-            msg.sender,
+            params.recipient,
             SwapCallbackData({
                 path: abi.encodePacked(params.tokenOut, params.fee, params.tokenIn),
                 payer: msg.sender,
+                recipient: params.recipient,
                 firstPool: address(0),
                 amount0Delta: 0,
                 amount1Delta: 0,
@@ -150,10 +154,11 @@ contract FlashSwapper is IFlashSwapper {
 
         _exactOutputInternal(
             params.amountOut,
-            msg.sender,
+            params.recipient,
             SwapCallbackData({
                 path: params.path,
                 payer: msg.sender,
+                recipient: params.recipient,
                 firstPool: address(0),
                 amount0Delta: 0,
                 amount1Delta: 0,
