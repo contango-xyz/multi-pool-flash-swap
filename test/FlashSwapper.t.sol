@@ -20,7 +20,7 @@ contract FlashSwapperTest is Test {
     function setUp() public {
         vm.makePersistent(BOB);
 
-        vm.createSelectFork("mainnet");
+        vm.createSelectFork("mainnet", 16443750);
 
         vm.label(DAI, "DAI");
         vm.label(USDC, "USDC");
@@ -31,7 +31,7 @@ contract FlashSwapperTest is Test {
     }
 
     function testExactInputSingle() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputSingleParams memory params = IFlashSwapper.ExactInputSingleParams({
             tokenIn: WETH,
@@ -45,11 +45,15 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInputSingle(params);
 
-        assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
+        assertEqDecimal(IERC20(USDC).balanceOf(BOB), 1549.361628e6, 6);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1549.361628e6, 6, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 1 ether, 18, "amount1Delta");
     }
 
     function testExactInput_2Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), USDC, uint24(100), DAI),
@@ -61,11 +65,15 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInput(params);
 
-        assertGt(IERC20(DAI).balanceOf(BOB), 1500e18);
+        assertEqDecimal(IERC20(DAI).balanceOf(BOB), 1549.166467184932744705e18, 18);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1549.166467184932744705e18, 18, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 1 ether, 18, "amount1Delta");
     }
 
     function testExactInput_3Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
             path: abi.encodePacked(WETH, uint24(500), DAI, uint24(100), USDC, uint24(500), WBTC),
@@ -77,11 +85,15 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactInput(params);
 
-        assertGt(IERC20(WBTC).balanceOf(BOB), 1e8);
+        assertEqDecimal(IERC20(WBTC).balanceOf(BOB), 1.10409975e8, 8);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1.10409975e8, 8, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 15 ether, 18, "amount1Delta");
     }
 
     function testExactOutputSingle() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactOutputSingleParams memory params = IFlashSwapper.ExactOutputSingleParams({
             tokenIn: WETH,
@@ -95,12 +107,15 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactOutputSingle(params);
 
-        // assertGt(IERC20(USDC).balanceOf(BOB), 1500e6);
-        assertEq(IERC20(USDC).balanceOf(BOB), 1600e6);
+        assertEqDecimal(IERC20(USDC).balanceOf(BOB), 1600e6, 6);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1600e6, 6, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 1.032683399878123485 ether, 18, "amount1Delta");
     }
 
     function testExactOutput_2Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(DAI, uint24(100), USDC, uint24(500), WETH),
@@ -112,11 +127,15 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactOutput(params);
 
-        assertEq(IERC20(DAI).balanceOf(BOB), 1600e18);
+        assertEqDecimal(IERC20(DAI).balanceOf(BOB), 1600e18, 18);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1600e18, 18, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 1.032813495483376696 ether, 18, "amount1Delta");
     }
 
     function testExactOutput_3Pools() public {
-        Caller caller = new Caller({_tokenIn:WETH, data: expectedData});
+        Caller caller = new Caller({_tokenIn:WETH});
 
         IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
             path: abi.encodePacked(WBTC, uint24(500), USDC, uint24(100), DAI, uint24(500), WETH),
@@ -128,28 +147,35 @@ contract FlashSwapperTest is Test {
         vm.prank(address(caller));
         flashSwapper.exactOutput(params);
 
-        assertEq(IERC20(WBTC).balanceOf(BOB), 1e8);
+        assertEqDecimal(IERC20(WBTC).balanceOf(BOB), 1e8, 8);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amount0Delta(), -1e8, 8, "amount0Delta");
+        assertEqDecimal(caller.amount1Delta(), 13.582961741120595213 ether, 18, "amount1Delta");
     }
 }
 
 contract Caller is IFlashSwapperCallback, StdCheats, StdAssertions {
     address public immutable tokenIn;
-    bytes public expectedData;
+    bytes public data;
+    int256 public amount0Delta;
+    int256 public amount1Delta;
 
-    constructor(address _tokenIn, bytes memory data) {
+    constructor(address _tokenIn) {
         tokenIn = _tokenIn;
-        expectedData = data;
     }
 
-    function flashSwapCallback(int256 amount0Delta, int256 amount1Delta, address pool, bytes calldata data)
+    function flashSwapCallback(int256 _amount0Delta, int256 _amount1Delta, address pool, bytes calldata _data)
         external
         override
     {
         uint256 amountToPay =
-            IERC20(tokenIn).balanceOf(pool) + (amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta));
+            IERC20(tokenIn).balanceOf(pool) + (_amount0Delta > 0 ? uint256(_amount0Delta) : uint256(_amount1Delta));
 
         deal(tokenIn, pool, amountToPay);
 
-        assertEq(data, expectedData);
+        data = _data;
+        amount0Delta = _amount0Delta;
+        amount1Delta = _amount1Delta;
     }
 }
