@@ -6,8 +6,6 @@ import "solmate/src/utils/SafeTransferLib.sol";
 import "./dependencies/Uniswap.sol";
 import "./interfaces/IFlashSwapper.sol";
 
-import "forge-std/console.sol";
-
 contract FlashSwapper is IFlashSwapper {
     using Path for bytes;
     using SafeCast for uint256;
@@ -25,8 +23,8 @@ contract FlashSwapper is IFlashSwapper {
         address payer;
         address recipient;
         address firstPool;
-        int256 amount0Delta;
-        int256 amount1Delta;
+        uint256 amountReceived;
+        uint256 amountToRepay;
         bytes data;
     }
 
@@ -36,22 +34,19 @@ contract FlashSwapper is IFlashSwapper {
         (address tokenIn, address tokenOut, uint24 fee) = cb.path.decodeFirstPool();
         CallbackValidation.verifyCallback(FACTORY, tokenIn, tokenOut, fee);
 
-        (bool isExactInput, uint256 amountToPay, uint256 amountReceived) = amount0Delta > 0
+        (bool isExactInput, uint256 amountToRepay, uint256 amountReceived) = amount0Delta > 0
             ? (tokenIn < tokenOut, uint256(amount0Delta), uint256(-amount1Delta))
             : (tokenOut < tokenIn, uint256(amount1Delta), uint256(-amount0Delta));
 
-        console.logInt(amount0Delta);
-        console.logInt(amount1Delta);
-
         if (cb.firstPool == address(0)) {
             cb.firstPool = msg.sender;
-            cb.amount0Delta = amount0Delta;
-            cb.amount1Delta = amount1Delta;
+            cb.amountReceived = amountReceived;
+            cb.amountToRepay = amountToRepay;
         }
 
         if (isExactInput) {
             if (cb.firstPool != msg.sender) {
-                ERC20(tokenIn).safeTransfer(msg.sender, amountToPay);
+                ERC20(tokenIn).safeTransfer(msg.sender, amountToRepay);
             }
 
             if (cb.path.hasMultiplePools()) {
@@ -64,8 +59,8 @@ contract FlashSwapper is IFlashSwapper {
                 });
             } else {
                 IFlashSwapperCallback(cb.payer).flashSwapCallback({
-                    amount0Delta: amount0Delta,
-                    amount1Delta: cb.amount1Delta,
+                    amountReceived: amountReceived,
+                    amountToRepay: cb.amountToRepay,
                     pool: cb.firstPool,
                     data: cb.data
                 });
@@ -74,11 +69,11 @@ contract FlashSwapper is IFlashSwapper {
             if (cb.path.hasMultiplePools()) {
                 cb.path = cb.path.skipToken();
 
-                _exactOutput({amountOut: amountToPay, recipient: msg.sender, data: cb});
+                _exactOutput({amountOut: amountToRepay, recipient: msg.sender, data: cb});
             } else {
                 IFlashSwapperCallback(cb.payer).flashSwapCallback({
-                    amount0Delta: cb.amount0Delta,
-                    amount1Delta: amount1Delta,
+                    amountReceived: cb.amountReceived,
+                    amountToRepay: amountToRepay,
                     pool: msg.sender,
                     data: cb.data
                 });
@@ -95,8 +90,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 recipient: params.recipient,
                 firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                amountReceived: 0,
+                amountToRepay: 0,
                 data: params.data
             })
         );
@@ -113,8 +108,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 recipient: params.recipient,
                 firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                amountReceived: 0,
+                amountToRepay: 0,
                 data: params.data
             })
         );
@@ -143,8 +138,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 recipient: params.recipient,
                 firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                amountReceived: 0,
+                amountToRepay: 0,
                 data: params.data
             })
         );
@@ -161,8 +156,8 @@ contract FlashSwapper is IFlashSwapper {
                 payer: msg.sender,
                 recipient: params.recipient,
                 firstPool: address(0),
-                amount0Delta: 0,
-                amount1Delta: 0,
+                amountReceived: 0,
+                amountToRepay: 0,
                 data: params.data
             })
         );
