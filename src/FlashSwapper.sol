@@ -5,6 +5,7 @@ import "@uniswap/v3-core/contracts/libraries/SafeCast.sol";
 import "solmate/src/utils/SafeTransferLib.sol";
 import "./dependencies/Uniswap.sol";
 import "./interfaces/IFlashSwapper.sol";
+import "./interfaces/IFlashSwapperCallback.sol";
 
 contract FlashSwapper is IFlashSwapper {
     using Path for bytes;
@@ -12,11 +13,6 @@ contract FlashSwapper is IFlashSwapper {
     using SafeTransferLib for ERC20;
 
     address internal constant FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-    address public immutable weth;
-
-    constructor(address _weth) {
-        weth = _weth;
-    }
 
     struct SwapCallbackData {
         bytes path;

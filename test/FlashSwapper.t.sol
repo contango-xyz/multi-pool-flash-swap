@@ -32,7 +32,7 @@ contract FlashSwapperTest is Test {
         vm.label(WETH, "WETH");
         vm.label(WBTC, "WBTC");
 
-        flashSwapper = new FlashSwapper(WETH);
+        flashSwapper = new FlashSwapper();
     }
 
     function testExactInputSingle_direct() public {
