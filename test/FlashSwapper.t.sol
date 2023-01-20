@@ -79,6 +79,26 @@ contract FlashSwapperTest is Test {
         assertEqDecimal(caller.amountToRepay(), 1 ether, 18, "amountToRepay");
     }
 
+    function testExactInput_1Pool() public {
+        Caller caller = new Caller({_tokenIn:WETH, _whale: WETH_WHALE});
+
+        IFlashSwapper.ExactInputParams memory params = IFlashSwapper.ExactInputParams({
+            path: abi.encodePacked(WETH, uint24(500), USDC),
+            recipient: BOB,
+            amountIn: 1 ether,
+            data: expectedData
+        });
+
+        vm.prank(address(caller));
+        flashSwapper.exactInput(params);
+
+        assertEqDecimal(IERC20(USDC).balanceOf(BOB), 1549.361628e6, 6);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amountReceived(), 1549.361628e6, 6, "amountReceived");
+        assertEqDecimal(caller.amountToRepay(), 1 ether, 18, "amountToRepay");
+    }
+
     function testExactInput_2Pools() public {
         Caller caller = new Caller({_tokenIn:WETH, _whale: WETH_WHALE});
 
@@ -195,6 +215,26 @@ contract FlashSwapperTest is Test {
 
         vm.prank(address(caller));
         flashSwapper.exactOutputSingle(params);
+
+        assertEqDecimal(IERC20(USDC).balanceOf(BOB), 1600e6, 6);
+
+        assertEq(caller.data(), expectedData);
+        assertEqDecimal(caller.amountReceived(), 1600e6, 6, "amountReceived");
+        assertEqDecimal(caller.amountToRepay(), 1.032683399878123485 ether, 18, "amountToRepay");
+    }
+
+    function testExactOutput_1Pool() public {
+        Caller caller = new Caller({_tokenIn:WETH, _whale: WETH_WHALE});
+
+        IFlashSwapper.ExactOutputParams memory params = IFlashSwapper.ExactOutputParams({
+            path: abi.encodePacked(USDC, uint24(500), WETH),
+            recipient: BOB,
+            amountOut: 1600e6,
+            data: expectedData
+        });
+
+        vm.prank(address(caller));
+        flashSwapper.exactOutput(params);
 
         assertEqDecimal(IERC20(USDC).balanceOf(BOB), 1600e6, 6);
 

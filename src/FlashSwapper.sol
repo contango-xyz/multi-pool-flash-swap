@@ -98,11 +98,9 @@ contract FlashSwapper is IFlashSwapper {
     }
 
     function exactInput(ExactInputParams calldata params) external override {
-        require(params.path.hasMultiplePools(), "FlashSwapper: EXACT_INPUT_MULTIPLE_POOLS");
-
         _exactInput(
             params.amountIn,
-            address(this),
+            params.path.hasMultiplePools() ? address(this) : params.recipient,
             SwapCallbackData({
                 path: params.path,
                 payer: msg.sender,
@@ -146,8 +144,6 @@ contract FlashSwapper is IFlashSwapper {
     }
 
     function exactOutput(ExactOutputParams calldata params) external override {
-        require(params.path.hasMultiplePools(), "FlashSwapper: EXACT_OUTPUT_MULTIPLE_POOLS");
-
         _exactOutput(
             params.amountOut,
             params.recipient,
